@@ -11,6 +11,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using WPFGeoServer.Classes;
 
 namespace WPFGeoServer
 {
@@ -19,15 +20,8 @@ namespace WPFGeoServer
     /// </summary>
     public partial class MainWindow : Window
     {
-        private readonly string _htmlPath = Path.Combine(
-            AppDomain.CurrentDomain.BaseDirectory, "Resources", "map.html");
-
-        private static readonly HttpClient client = new HttpClient();
-
-        private int[] mapScaleArray = { 1000, 2500, 5000, 10000, 25000, 50000 };
         private readonly double[] gpsSizeArray = { 0.005, 0.0125, 0.025, 0.05, 0.125, 0.25 };
         private double tileSizeGps;
-        private string[] lenArray = { "F3", "F4", "F3", "F2", "F3", "F2" };
 
         private int zoomLevel = 2;
         private readonly Size tileSize = new Size(1024, 1024);
@@ -56,6 +50,8 @@ namespace WPFGeoServer
                 currentCenterGPS = new Point(127.36, 36.34);
                 await LoadTilesAsync(currentCenterGPS);
             };
+
+            DownloadWMSImage();
         }
 
         private Point GPSToCanvas(Point gps)
@@ -148,7 +144,7 @@ namespace WPFGeoServer
                         continue;
                     }
 
-                    var image = await LoadTileImageAsync(tileStart, tileEnd);
+                    var image = await WMSManager.Instance.LoadTileImageAsync(tileStart, tileEnd, tileSize);
                     if (image == null) continue;
 
                     var img = new Image
@@ -175,45 +171,6 @@ namespace WPFGeoServer
             Debug.WriteLine($"Zoom Level: {zoomLevel}, Center GPS: {centerGPS}, Center Tile Center GPS: {centerTileCenterGPS}");
 
             currentCenterGPS = centerGPS;
-        }
-
-
-        private async Task<BitmapImage> LoadTileImageAsync(Point startGPS, Point endGPS)
-        {
-            string bbox = $"{Math.Min(startGPS.X, endGPS.X)},{Math.Min(startGPS.Y, endGPS.Y)}," +
-              $"{Math.Max(startGPS.X, endGPS.X)},{Math.Max(startGPS.Y, endGPS.Y)}";
-
-            string ip = "localhost:8080";
-            string layerNames = "HJ:DJ_SJ";
-            string url = $"http://{ip}/geoserver/HJ/wms";
-            string wmsUrl = $"{url}?service=WMS&version=1.1.1&request=GetMap&" +
-                            $"layers={layerNames}&bbox={bbox}&" +
-                            $"width={(int)tileSize.Width}&height={(int)tileSize.Height}&srs=EPSG:4326&format=image/png&transparent=true";
-
-            try
-            {
-                client.DefaultRequestHeaders.UserAgent.ParseAdd("WPFClient/1.0");
-
-                var response = await client.GetAsync(wmsUrl);
-                if (!response.IsSuccessStatusCode) return null;
-
-                var imageData = await response.Content.ReadAsByteArrayAsync();
-                var ms = new MemoryStream(imageData.ToArray());
-
-                var bmp = new BitmapImage();
-                bmp.BeginInit();
-                bmp.CacheOption = BitmapCacheOption.OnLoad;
-                bmp.StreamSource = ms;
-                bmp.EndInit();
-                bmp.Freeze();
-
-                return bmp;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("[예외 발생] " + ex.Message);
-                return null;
-            }
         }
 
         private async Task UpdateCurrentCenterGPS()
@@ -294,6 +251,27 @@ namespace WPFGeoServer
             PanTransform.Y = 0;
 
             await LoadTilesAsync(gpsBefore);
+        }
+
+        // <summary>
+        /// WMS 이미지 다운로드 테스트용
+        /// </summary>
+        private void DownloadWMSImage()
+        {
+            double minX = 126.970;
+            double minY = 35.980;
+            double maxX = 127.725;
+            double maxY = 36.740;
+
+            for (double x = minX; x <= maxX; x += 0.25)
+            {
+                for (double y = minY; y <= maxY; y += 0.25)
+                {
+                    Point startGPS = new Point(x, y);
+                    Point endGPS = new Point(x + 0.25, y + 0.25);
+                    WMSManager.Instance.LoadTileImageAsync(startGPS, endGPS, tileSize, true);
+                }
+            }
         }
     }
 }
