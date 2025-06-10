@@ -4,18 +4,13 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using Microsoft.Web.WebView2.Core;
 
 namespace WPFGeoServer
 {
@@ -89,22 +84,6 @@ namespace WPFGeoServer
                 currentCenterGPS.X + dx / tileSize.Width * tileSizeGps,
                 currentCenterGPS.Y - dy / tileSize.Height * tileSizeGps);
         }
-
-        //private Point CanvasToGPS(Point canvasPos)
-        //{
-        //    // 팬 및 줌 반영: 캔버스 좌표 → 로컬 좌표계로 변환
-        //    GeneralTransform transform = MapCanvas.RenderTransform.Inverse;
-        //    Point logical = transform.Transform(canvasPos);
-
-        //    // 타일 한 개당 GPS 크기
-        //    double tileSizeGps = gpsSizeArray[zoomLevel];
-        //    double gpsOffsetX = PanTransform.X / tileSize.Width * tileSizeGps;
-        //    double gpsOffsetY = PanTransform.Y / tileSize.Height * tileSizeGps;
-
-        //    return new Point(
-        //        currentCenterGPS.X - gpsOffsetX,   // X는 오른쪽으로 갈수록 커짐
-        //        currentCenterGPS.Y + gpsOffsetY);  // Y는 아래로 갈수록 작아짐
-        //}
 
         private double Normalize(double value) => Math.Round(value, 5);
 
@@ -193,12 +172,6 @@ namespace WPFGeoServer
                 }
             }
 
-            //Point screenCenter = new Point(MapCanvas.ActualWidth / 2, MapCanvas.ActualHeight / 2);
-            //Point actualPos = GPSToCanvas(centerTileCenterGPS);
-            //Vector offset = screenCenter - actualPos;
-            //PanTransform.X += offset.X;
-            //PanTransform.Y += offset.Y;
-
             Debug.WriteLine($"Zoom Level: {zoomLevel}, Center GPS: {centerGPS}, Center Tile Center GPS: {centerTileCenterGPS}");
 
             currentCenterGPS = centerGPS;
@@ -210,9 +183,9 @@ namespace WPFGeoServer
             string bbox = $"{Math.Min(startGPS.X, endGPS.X)},{Math.Min(startGPS.Y, endGPS.Y)}," +
               $"{Math.Max(startGPS.X, endGPS.X)},{Math.Max(startGPS.Y, endGPS.Y)}";
 
-            string ip = "192.168.10.192:8080";
-            string layerNames = "CUUVA:DJ_SJ";
-            string url = $"http://{ip}/geoserver/CUUVA/wms";
+            string ip = "localhost:8080";
+            string layerNames = "HJ:DJ_SJ";
+            string url = $"http://{ip}/geoserver/HJ/wms";
             string wmsUrl = $"{url}?service=WMS&version=1.1.1&request=GetMap&" +
                             $"layers={layerNames}&bbox={bbox}&" +
                             $"width={(int)tileSize.Width}&height={(int)tileSize.Height}&srs=EPSG:4326&format=image/png&transparent=true";
